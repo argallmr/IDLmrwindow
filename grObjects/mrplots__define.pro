@@ -754,7 +754,7 @@ _REF_EXTRA=extra
     setDefaultValue, symsize,   1.0
     setDefaultValue, thick,     1.0
     setDefaultValue, linestyle, 'Solid_Line'
-    setDefaultValue, noclip,    1,  /BOOLEAN
+    setDefaultValue, noclip,    0,  /BOOLEAN
     setDefaultValue, data,      0,  /BOOLEAN
     setDefaultValue, device,    0,  /BOOLEAN
     setDefaultValue, normal,    0,  /BOOLEAN

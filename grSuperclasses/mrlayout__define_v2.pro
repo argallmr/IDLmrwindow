@@ -311,7 +311,7 @@ end
 
 
 ;+
-;   The purpose of this method is to shift a given amount of rows.
+;   The purpose of this method is to shift a given amount of columns.
 ;
 ; :Params:
 ;       NCOLS:          in, optional, type=int, default=1

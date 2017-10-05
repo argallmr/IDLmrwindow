@@ -128,7 +128,7 @@ function MrLegend_Item::_OverloadPrint
 
 	;Put MrLegend properties together
 	selfStr = obj_class(self) + '  <' + strtrim(obj_valid(self, /GET_HEAP_IDENTIFIER), 2) + '>'
-	itemKeys = [ [ auto_text_color      ], $
+	itemKeys = [ [ auto_text_color  ], $
 	             [ font             ], $
 	             [ label            ], $
 	             [ text_color       ], $
@@ -198,8 +198,11 @@ WIDTH=width
 ; Line Properties \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 ;-----------------------------------------------------
 	
-	;Length and height of line
+	;Length and heig t of line
+	;   - If sample_width=0, the symbol will overlap with the text.
+	;   - Set a minimum length for the line, even if it is not being drawn
 	length = self.sample_width * x_char * Cos(self.sample_angle * !dtor)
+	IF self.sample_width EQ 0 THEN length >= 1.5 * x_char
 	height = self.sample_width * x_char * Sin(self.sample_angle * !dtor)
 
 	;The minimum height of a legend item is one character height (heigth of text).
@@ -281,12 +284,12 @@ WIDTH=width
 	IF psym NE 0 THEN BEGIN
 		;If symbols are on the ends, add two 1/2 symbol widths.
 		IF self.sym_center EQ 0 THEN BEGIN
-			length += sym_size * x_char
+;			length += sym_size * x_char
 			xsym    = [x0, x1]
 			ysym    = [y0, y1]
 		ENDIF ELSE BEGIN
-			xsym    = [xCenter, xCenter]
-			ysym    = [yCenter, yCenter]
+			xsym    = xCenter
+			ysym    = yCenter
 		ENDELSE
 		
 		;Draw the symbols
@@ -483,7 +486,6 @@ TEXT_THICK=text_thick
 	On_Error, 2
 	
 	;Set Properties
-	IF N_Elements(auto_text_color)  GT 0 THEN  self.auto_text_color  = Keyword_Set(auto_text_color)
 	IF N_Elements(font)             GT 0 THEN  self.font             = font
 	IF N_Elements(label)            GT 0 THEN  self.label            = label
 	IF N_Elements(sample_color)     GT 0 THEN *self.sample_color     = sample_color
@@ -494,13 +496,13 @@ TEXT_THICK=text_thick
 	IF N_Elements(sample_thick)     GT 0 THEN  self.sample_thick     = sample_thick
 	IF N_Elements(sample_width)     GT 0 THEN  self.sample_width     = sample_width
 	IF N_Elements(psym)             GT 0 THEN *self.symbol           = psym
-	IF N_Elements(sym_center)       GT 0 THEN  self.sym_center       = sym_center
+	IF N_Elements(sym_center)       GT 0 THEN  self.sym_center       = Keyword_Set(sym_center)
 	IF N_Elements(sym_size)         GT 0 THEN  self.sym_size         = sym_size
 	IF N_Elements(sym_thick)        GT 0 THEN  self.sym_thick        = sym_thick
 	IF N_Elements(text_color)       GT 0 THEN *self.text_color       = text_color
 	IF N_Elements(text_size)        GT 0 THEN  self.text_size        = text_size
 	IF N_Elements(text_thick)       GT 0 THEN  self.text_thick       = text_thick
-
+	
 	;Set Target
 	IF N_Elements(target) GT 0 THEN BEGIN
 		IF Obj_Valid(target) $
@@ -509,7 +511,7 @@ TEXT_THICK=text_thick
 	ENDIF
 	
 	;AUTO_TEXT_COLOR depends on TARGET
-	IF N_Elements(auto_text_color)  GT 0 THEN  self.auto_text_color  = Keyword_Set(auto_text_color)	
+	IF N_Elements(auto_text_color) GT 0 THEN self.auto_text_color  = Keyword_Set(auto_text_color)
 	IF self.auto_text_color && Obj_Valid(self.target) EQ 0 THEN BEGIN
 		Message, 'No valid target. Setting AUTO_TEXT_COLOR to 0.', /INFORMATIONAL
 		self.auto_text_color = 0B
@@ -922,22 +924,111 @@ end
 ;function MrLegend::_OverloadSize
 ;	compile_opt idl2
 ;	on_error, 2
-;	
-;	;Elements of size array
-;	;   0:       Number of dimensions, NDIMS
-;	;   1-NDIMS: Size of each dimension
-;	;   NDIMS+1: Type code
-;	;   NDIMS+2: Total number of elements
-;	count = self.items -> Count()
-;	nDims = 1
-;	dims  = count
-;	tcode = 11
-;	sz    = [nDims, dims, tcode, count]
-;
-;	;Return the dimensions of the array. The Size and N_Elements functions
-;	;will know what to do with them.
-;	return, sz
+	
+	;Returning a scalar value simulates returning the total number of elements
+	;   - N_Dimensions = 1 (or 0 if count=1)
+	;   - Dimensions   = count
+	;   - N_Elements   = count
+;	return, self.items -> Count()
 ;end
+
+
+;+
+;   Add an item to the legend.
+;
+; :Keywords:
+;       AUTO_TEXT_COLOR:        in, optional, type=boolean
+;                               If set, `TEXT_COLOR` will be the color of `TARGET`.
+;       LABEL:                  in, optional, type=string
+;                               Legend item text.
+;       TEXT_COLOR:             in, optional, type=string/short/long/bytarr(3)
+;                               The text color's name, color table index, 24-bit color, or
+;                                   RGB-triple.
+;       TEXT_SIZE:              in, optional, type=float
+;                               Multiplier of the default character size.
+;       TEXT_THICK:             in, optional, type=integer
+;                               Multiplier of the default text thickness.
+;       TARGET:                 in, optional, type=object
+;                               Graphic object that `LABEL` describes.
+;       SAMPLE_ANGLE:           in, optional, type=float
+;                               Angle at which to draw the model line.
+;       SAMPLE_COLOR:           in, optional, type=string/short/long/bytarr(3)
+;                               The line color's name, color table index, 24-bit color, or
+;                                   RGB-triple.
+;       SAMPLE_LINESTYLE:       in, optional, type=float
+;                               Style with with to draw the line. Choices are::
+;                                   0   '-'     "Solid
+;                                   1   '.'     "Dot"
+;                                   2   '--'    "Dash"
+;                                   3   '-.'    "Dash_Dot"
+;                                   4   '-:'    "Dash_Dot_Dot"
+;                                   5   '__'    "Long_Dash"
+;                                   6   ' '     "None"
+;       SAMPLE_MAGNITUDE:       in, optional, type=float/string
+;                               For vector graphics, the representative vector length. Can
+;                                   be "Min", "Mean", or "Max", which will take the
+;                                   minimum, mean, or maximum data sample for the length
+;                                   of the vector.
+;       SAMPLE_THICK:           in, optional, type=float
+;                               Thickness of the sample line.
+;       SAMPLE_WIDTH:           in, optional, type=float
+;                               Length of the sample line.
+;       SYMBOL:                 in, optional, type=integer/string
+;                               Name or number of the symbol used to mark the sample line.
+;       SYM_CENER:              in, optional, type=boolean
+;                               If set, symbols will be centered on the sample line. The
+;                                   defualt is to put a symbol on each end of the line.
+;       SYM_SIZE:               in, optional, type=float
+;                               Size of the symbols.
+;       SYM_THICK:              in, optional, type=integer
+;                               Thickness of the symbols.
+;-
+PRO MrLegend::Add_v1, $
+AUTO_TEXT_COLOR=auto_text_color, $
+FONT=font, $
+LABEL=label, $
+TEXT_COLOR=text_color, $
+TEXT_SIZE=text_size, $
+TEXT_THICK=text_thick, $
+TARGET=target, $
+SAMPLE_ANGLE=sample_angle, $
+SAMPLE_COLOR=sample_color, $
+SAMPLE_LINESTYLE=sample_linestyle, $
+SAMPLE_MAGNITUDE=sample_magnitude, $
+SAMPLE_THICK=sample_thick, $
+SAMPLE_WIDTH=sample_width, $
+SYMBOL=psym, $
+SYM_CENTER=sym_center, $
+SYM_COLOR=sym_color, $
+SYM_SIZE=sym_size, $
+SYM_THICK=sym_thick
+	Compile_Opt idl2
+	On_Error, 2
+
+	;Create the legend item.
+	item = Obj_New('MrLegend_Item', $
+	               AUTO_TEXT_COLOR  = auto_text_color, $
+	               FONT             = font, $
+	               LABEL            = label, $
+	               SAMPLE_ANGLE     = sample_angle, $
+	               SAMPLE_COLOR     = sample_color, $
+	               SAMPLE_LINESTYLE = sample_linestyle, $
+	               SAMPLE_MAGNITUDE = sample_magnitude, $
+	               SAMPLE_THICK     = sample_thick, $
+	               SAMPLE_WIDTH     = sample_width, $
+	               SYMBOL           = psym, $
+	               SYM_CENTER       = sym_center, $
+	               SYM_COLOR        = sym_color, $
+	               SYM_SIZE         = sym_size, $
+	               SYM_THICK        = sym_thick, $
+	               TARGET           = target, $
+	               TEXT_COLOR       = text_color, $
+	               TEXT_SIZE        = text_size, $
+	               TEXT_THICK       = text_thick)
+	
+	;Add to container
+	IF Obj_Valid(item) THEN self.items -> Add, item
+END
 
 
 ;+
@@ -1011,30 +1102,90 @@ SYM_SIZE=sym_size, $
 SYM_THICK=sym_thick
 	Compile_Opt idl2
 	On_Error, 2
-
-	;Create the legend item.
-	item = Obj_New('MrLegend_Item', $
-	               AUTO_TEXT_COLOR  = auto_text_color, $
-	               FONT             = font, $
-	               LABEL            = label, $
-	               SAMPLE_ANGLE     = sample_angle, $
-	               SAMPLE_COLOR     = sample_color, $
-	               SAMPLE_LINESTYLE = sample_linestyle, $
-	               SAMPLE_MAGNITUDE = sample_magnitude, $
-	               SAMPLE_THICK     = sample_thick, $
-	               SAMPLE_WIDTH     = sample_width, $
-	               SYMBOL           = psym, $
-	               SYM_CENTER       = sym_center, $
-	               SYM_COLOR        = sym_color, $
-	               SYM_SIZE         = sym_size, $
-	               SYM_THICK        = sym_thick, $
-	               TARGET           = target, $
-	               TEXT_COLOR       = text_color, $
-	               TEXT_SIZE        = text_size, $
-	               TEXT_THICK       = text_thick)
 	
-	;Add to container
-	IF Obj_Valid(item) THEN self.items -> Add, item
+;-----------------------------------------------------
+; Find Targets & Labels \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+;-----------------------------------------------------
+	
+	;Number of legend items to add
+	nLabels  = N_Elements(label)
+	nTargets = N_Elements(target)
+
+	;Get targets
+	IF nTargets EQ 0 THEN BEGIN
+		target = self -> _GetTarget(/ALL, /ANY, COUNT=nTargets)
+		if nTargets EQ 0 THEN Message, 'Insert MrLegend failed. No targets available.'
+	ENDIF
+
+	;Get the title from the targets?
+	IF nLabels EQ 0 THEN BEGIN
+		label = StrArr(nTargets)
+		FOR i = 0, nTargets-1 DO label[i] = target[i] -> GetName()
+	ENDIF
+	
+	;Consistent legends and labels
+	nLegends = N_Elements(label)
+	IF nTargets GT 1 && nLegends NE nTargets THEN $
+		Message, 'TARGET and LABEL must have the same number of elements.'
+
+;-----------------------------------------------------
+; Default Values \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+;-----------------------------------------------------
+;	text_color   = MrDefaultColor(text_color,   NCOLORS=nLegends)
+;	sample_color = MrDefaultColor(sample_color, NCOLORS=nLegends, DEFAULT=text_color)
+;	sym_color    = MrDefaultColor(sym_color,    NCOLORS=nLegends, DEFAULT=text_color)
+	
+	IF N_Elements(sample_angle)     EQ 0 THEN sample_angle     = Replicate(0.0,          nLegends)
+	IF N_Elements(sample_color)     EQ 0 THEN sample_color     = Replicate('Black',      nLegends)
+	IF N_Elements(sample_linestyle) EQ 0 THEN sample_linestyle = Replicate('Solid_Line', nLegends)
+	IF N_Elements(sample_magnitude) EQ 0 THEN sample_magnitude = Replicate(0.0,          nLegends)
+	IF N_Elements(sample_width)     EQ 0 THEN sample_width     = Replicate(5.0,          nLegends)
+	IF N_Elements(sym_color)        EQ 0 THEN sym_color        = Replicate('Black',      nLegends)
+	IF N_Elements(text_color)       EQ 0 THEN text_color       = Replicate('Black',      nLegends)
+	IF N_Elements(psym)             EQ 0 THEN psym             = Replicate(0,            nLegends)
+	
+	IF N_Elements(sample_angle)     EQ 1 THEN sample_angle     = Replicate(sample_angle,     nLegends)
+	IF N_Elements(sample_color)     EQ 1 THEN sample_color     = Replicate(sample_color,     nLegends)
+	IF N_Elements(sample_linestyle) EQ 1 THEN sample_linestyle = Replicate(sample_linestyle, nLegends)
+	IF N_Elements(sample_magnitude) EQ 1 THEN sample_magnitude = Replicate(sample_magnitude, nLegends)
+	IF N_Elements(sample_width)     EQ 1 THEN sample_width     = Replicate(sample_width,     nLegends)
+	IF N_Elements(sym_color)        EQ 1 THEN sym_color        = Replicate(sym_color,        nLegends)
+	IF N_Elements(text_color)       EQ 1 THEN text_color       = Replicate(text_color,       nLegends)
+	IF N_Elements(psym)             EQ 1 THEN psym             = Replicate(psym,             nLegends)
+	
+;-----------------------------------------------------
+; Create & Add Legend Items \\\\\\\\\\\\\\\\\\\\\\\\\\
+;-----------------------------------------------------
+	FOR i = 0, nLegends - 1 DO BEGIN
+		IF nLabels GT 0 THEN temp_label = label[i]
+		IF nTargets EQ 1 $
+			THEN temp_target = target[0] $
+			ELSE temp_target = target[i]
+
+		;Create the legend item.
+		item = Obj_New( 'MrLegend_Item', $
+		                AUTO_TEXT_COLOR  = auto_text_color, $
+		                FONT             = font, $
+		                LABEL            = temp_label, $
+		                SAMPLE_ANGLE     = sample_angle[i], $
+		                SAMPLE_COLOR     = sample_color[i], $
+		                SAMPLE_LINESTYLE = sample_linestyle[i], $
+		                SAMPLE_MAGNITUDE = sample_magnitude[i], $
+		                SAMPLE_THICK     = sample_thick, $
+		                SAMPLE_WIDTH     = sample_width[i], $
+		                SYMBOL           = psym[i], $
+		                SYM_CENTER       = sym_center, $
+		                SYM_COLOR        = sym_color[i], $
+		                SYM_SIZE         = sym_size, $
+		                SYM_THICK        = sym_thick, $
+		                TARGET           = temp_target, $
+		                TEXT_COLOR       = text_color[i], $
+		                TEXT_SIZE        = text_size, $
+		                TEXT_THICK       = text_thick )
+		
+		;Add to container
+		IF Obj_Valid(item) THEN self.items -> Add, item
+	ENDFOR
 END
 
 
@@ -1409,7 +1560,7 @@ FUNCTION MrLegend::GetPosition
     position[2] = location[1] + dimensions[1]
         
     RETURN, POSITION
-END    
+END
 
 
 ;+
@@ -2054,7 +2205,7 @@ END
 ;                               via keyword inheritance. If `ITEM` is given, any
 ;                               keyword accepted by MrLegend_Item::SetProperty is accepted.
 ;-
-FUNCTION MrLegend::INIT, $
+FUNCTION MrLegend::INIT_v1, $
 TARGET=target, $
 DATA=data, $
 DEVICE=device, $
@@ -2245,6 +2396,280 @@ _REF_EXTRA=extra
 		             SYM_SIZE         = sym_size, $
 		             SYM_THICK        = sym_thick
 	ENDFOR
+
+;---------------------------------------------------------------------
+; Set Properties /////////////////////////////////////////////////////
+;---------------------------------------------------------------------
+	;Other Properties
+	self -> SetProperty, ALIGNMENT            = alignment, $
+	                     COLOR                = color, $
+	                     DATA                 = data, $
+	                     DEVICE               = device, $
+	                     FILL_COLOR           = fill_color, $
+	                     HARDWARE             = hardware, $
+	                     HORIZONTAL_ALIGNMENT = horizontal_alignment, $
+	                     HORIZONTAL_SPACING   = horizontal_spacing, $
+	                     LINESTYLE            = linestyle, $
+	                     MARGINS              = margins, $
+	                     NORMAL               = normal, $
+	                     ORIENTATION          = orientation, $
+	                     POSITION             = position, $
+	                     RELATIVE             = relative, $
+	                     THICK                = thick, $
+	                     TT_FONT              = tt_font, $
+	                     VERTICAL_ALIGNMENT   = vertical_alignment, $
+	                     VERTICAL_SPACING     = vertical_spacing
+
+	;Turn refresh back on?
+	if refreshIn then self.window -> Refresh
+
+	RETURN, 1
+END
+
+
+;+
+; This method creates an instance of the object.
+;
+; :Params:
+;       ITEM:               in, optional, type=objref/integer/string
+;                           The object reference, container position, or label of the legend
+;                               item whose properties are to be set.
+;
+; :Keywords:
+;       ALIGNMENT:          in, optional, type=string, default='NE'
+;                           Shortcut keyword for specifying `HORIZONTAL_ALIGNMENT` and
+;                               `VERTICAL_ALIGNMENT` at the same time. ALIGNMENT takes
+;                               precedence over those two keywords. Choices are::
+;                                   'E'     'East'
+;                                   'N'     'North'
+;                                   'NE'    'NorthEast'
+;                                   'NW'    'NorthWest'
+;                                   'S'     'South'
+;                                   'SE'    'SouthEast'
+;                                   'SW'    'SouthWest'
+;                                   'W'     'West'
+;       COLOR:              in, optional, type=string/integer/bytarr(3)
+;                           Name, index, 24-bit number, or RGB-triple of the color of the
+;                               bounding box of the legend. The default is chosen with
+;                               `MrDefaultColor`.
+;       DATA:               in, optional, type=boolean, default=0
+;                           If set, `POSITION` is provided in data coordinates. The data
+;                               coordinates used are those of the target of the legend
+;                               item at position 0.
+;       DEVICE:             in, optional, type=boolean, default=0
+;                           If set, `POSITION` is provided in device coordinates.
+;       FILL_COLOR:         in, optional, type=string/integer/bytarr(3), default='White'
+;                           Name, index, 24-bit number, or RGB-triple of the color with
+;                               which to fill the background of the legend.
+;       HARDWARE:           in, optional, type=boolean, default=0
+;                           If set, hardware fonts will be used.
+;       HORIZONTAL_ALIGNMENT:   in, optional, type=float/string, default='Right'
+;                               Horizontal alignment with respect to `POSITION`. A value
+;                                   of 0 (1) indicates left- (right-) aligned. The strings
+;                                   'LEFT', 'CENTER', and 'RIGHT' may also be used. If
+;                                   `ALIGNMENT` is provided, this keyword is ignored.
+;       HORIZONTAL_SPACING:     in, optional, type=float, default=3.0
+;                               Spacing between legend items when `ORIENTATION`=1, in
+;                                   units of character size.
+;       LINESTYLE:          in, optional, type=float, default='Solid_Line'
+;                           Style with with to draw the line. Choices are::
+;                               0   '-'     "Solid_Line"
+;                               1   '.'     "Dot"
+;                               2   '--'    "Dash"
+;                               3   '-.'    "Dash_Dot"
+;                               4   '-:'    "Dash_Dot_Dot_Dot"
+;                               5   '__'    "Long_Dash"
+;                               6   ' '     "None"
+;       MARGINS:            in, optional, type=fltarr(4)
+;                           A vector specifying the [left, bottom, right, top] margins
+;                               of the legend items, in character units. Margins are the
+;                               distance from the edge of the legend box to the legend
+;                               item space.
+;       NORMAL:             in, optional, type=boolean
+;                           If set, `POSITION` is given in normalized coordinates. This is
+;                               the default if `DEVICE`, `DATA`, and `RELATIVE` are not set.
+;       ORIENTATION:        in, optional, type=integer
+;                           A value of 1 (0) indicates legend items will be stacked
+;                               horizontally (vertically)
+;       POSITION:           in, optional, type=fltarr(2)
+;                           Location of the [right, top] corner of the legend.
+;       RELATIVE:           in, optional, type=boolean, default=0
+;                           If set, `POSITION` is normalized with respect to the target's
+;                               data space. See `DATA`.
+;       THICK:              in, optional, type=float, default=1
+;                           Thickness of the legend box's outline.
+;       TT_FONT:            in, optional, type=string
+;                           Name of the true-type font to use.
+;       VERTICAL_ALIGNMENT: in, optional, type=float/string, default='Top'
+;                           Vertical alignment with respect to `POSITION`. A value
+;                               of 0 (1) indicates bottom- (top-) aligned. The strings
+;                               'BOTTOM', 'CENTER', and 'TOP' may also be used. This
+;                               keyword is ignored if `ALIGNMENT` is used.
+;       VERTICAL_SPACING:   in, optional, type=float, default=0.5
+;                           Spacing between legend items when `ORIENTATION`=0, in units
+;                               of character sizes.
+;       _REF_EXTRA:         in, optional, type=any
+;                           Any keyword accepted by MrGrAtom::SetProperty is also accepted
+;                               via keyword inheritance. If `ITEM` is given, any
+;                               keyword accepted by MrLegend_Item::SetProperty is accepted.
+;-
+FUNCTION MrLegend::INIT, $
+TARGET=target, $
+DATA=data, $
+DEVICE=device, $
+NORMAL=normal, $
+RELATIVE=relative, $
+
+;Legend Position
+ALIGNMENT=alignment, $
+MARGINS=margins, $
+ORIENTATION=orientation, $
+POSITION=position, $
+HORIZONTAL_ALIGNMENT=horizontal_alignment, $
+HORIZONTAL_SPACING=horizontal_spacing, $
+VERTICAL_ALIGNMENT=vertical_alignment, $
+VERTICAL_SPACING=vertical_spacing, $
+
+;Legend Boundary
+COLOR=color, $
+LINESTYLE=linestyle, $
+THICK=thick, $
+FILL_COLOR=fill_color, $
+
+;Legend Lines
+SAMPLE_ANGLE=sample_angle, $
+SAMPLE_COLOR=sample_color, $
+SAMPLE_MAGNITUDE=sample_magnitude, $
+SAMPLE_WIDTH=sample_width, $
+SAMPLE_LINESTYLE=sample_linestyle, $
+
+;Legend Symbols, $
+SYMBOL=psym, $
+SYM_COLOR=sym_color, $
+SYM_CENTER=sym_center, $
+SYM_SIZE=sym_size, $
+SYM_THICK=sym_thick, $
+
+;Legend Text
+AUTO_TEXT_COLOR=auto_text_color, $
+HARDWARE=hardware, $
+LABEL=label, $
+FONT=font, $
+TEXT_COLOR=text_color, $
+TEXT_SIZE=text_size, $
+TEXT_THICK=text_thick, $
+TT_FONT=tt_font, $
+
+;GrAtom Properties
+_REF_EXTRA=extra
+	Compile_Opt strictarr
+
+	Catch, theError
+	IF theError NE 0 THEN BEGIN
+		Catch, /Cancel
+		MrPrintF, 'LogErr'
+		RETURN, 0
+	ENDIF
+
+;-----------------------------------------------------
+; Defaults \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+;-----------------------------------------------------
+	;Coordinates
+	normal   = keyword_set(normal)
+	data     = keyword_set(data)
+	device   = keyword_set(device)
+	relative = keyword_set(relative)
+	if normal + data + device + relative eq 0 then normal = 1
+	if normal + data + device + relative gt 1 then $
+		message, 'DATA, DEVICE, NORMAL, and RELATIVE keywords are mutually exclusive.'
+
+	;Colors
+	color = MrDefaultColor(color, NCOLORS=1)
+	
+	;Position
+	;   - If a target was given, position just outside its upper-right corner
+	;   - If no target, place the legend in the upper-right corner of the window.
+	if n_elements(position) eq 0 then begin
+		position  = [1.0, 1.0]
+		alignment = 'NW'
+		normal    = 0
+		data      = 0
+		device    = 0
+		relative  = 1
+		
+		;We are not allowing NTARGETS=0
+;		if n_elements(nTargets) eq 0 then begin
+;			position  = [0.95, 0.9]
+;			alignment = 'NE'
+;			normal    = 1
+;			data      = 0
+;			device    = 0
+;			relative  = 0
+;		endif else begin
+;			position  = [1.0, 1.0]
+;			alignment = 'NW'
+;			normal    = 0
+;			data      = 0
+;			device    = 0
+;			relative  = 1
+;		endelse
+	endif
+	
+	;Other defaults
+	if n_elements(fill_color)           eq 0 then fill_color           = MrDefaultColor(/BACKGROUND)
+	if n_elements(horizontal_alignment) eq 0 then horizontal_alignment = 'Left'
+	if n_elements(horizontal_spacing)   eq 0 then horizontal_spacing   = 3.0
+	if n_elements(linestyle)            eq 0 then linestyle            = 'Solid_Line'
+	if n_elements(margins)              eq 0 then margins              = [1.0, 0.5, 1.0, 0.5]
+	if n_elements(thick)                eq 0 then thick                = 1.0
+	if n_elements(vertical_alignment)   eq 0 then vertical_alignment   = 'Top'
+	if n_elements(vertical_spacing)     eq 0 then vertical_spacing     = 0.5
+
+;---------------------------------------------------------------------
+;Window //////////////////////////////////////////////////////////////
+;---------------------------------------------------------------------
+
+	;Superclass
+	;   - Takes the window from the target, but does not set the target.
+	success = self -> MrGrAtom::INIT(HIDE=hide, TARGET=target, WINREFRESH=refreshIn, _STRICT_EXTRA=extra)
+	if success eq 0 then message, 'Unable to initialize MrGrAtom'
+
+;---------------------------------------------------------------------
+; Allocate Heap //////////////////////////////////////////////////////
+;---------------------------------------------------------------------
+	self.items                = Obj_New('MrIDL_Container')
+	self.color                = Ptr_New(/ALLOCATE_HEAP)
+	self.fill_color           = Ptr_New(/ALLOCATE_HEAP)
+	self.horizontal_alignment = Ptr_New(/ALLOCATE_HEAP)
+	self.linestyle            = Ptr_New(/ALLOCATE_HEAP)
+	self.vertical_alignment   = Ptr_New(/ALLOCATE_HEAP)
+	self.width                = Ptr_New(/ALLOCATE_HEAP)
+
+;---------------------------------------------------------------------
+; Create Legend Items ////////////////////////////////////////////////
+;---------------------------------------------------------------------
+	;Add legend items
+	self -> Add, AUTO_TEXT_COLOR  = auto_text_color, $
+	             FONT             = font, $
+	             LABEL            = label, $
+	             TEXT_COLOR       = text_color, $
+	             TEXT_SIZE        = text_size, $
+	             TEXT_THICK       = text_thick, $
+	             TARGET           = target, $
+	             SAMPLE_ANGLE     = sample_angle, $
+	             SAMPLE_COLOR     = sample_color, $
+	             SAMPLE_LINESTYLE = sample_linestyle, $
+	             SAMPLE_MAGNITUDE = sample_magnitude, $
+	             SAMPLE_THICK     = sample_thick, $
+	             SAMPLE_WIDTH     = sample_width, $
+	             SYMBOL           = psym, $
+	             SYM_CENTER       = sym_center, $
+	             SYM_COLOR        = sym_color, $
+	             SYM_SIZE         = sym_size, $
+	             SYM_THICK        = sym_thick
+	
+	;Check if any items were added
+	IF self.items -> Count() EQ 0 THEN Message, 'No items added to legend.'
 
 ;---------------------------------------------------------------------
 ; Set Properties /////////////////////////////////////////////////////
