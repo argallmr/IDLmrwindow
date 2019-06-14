@@ -50,6 +50,8 @@
 ; :History:
 ;     Change History::
 ;       2014/09/21  -   Written by Matthew Argall
+;       2018/07/02  -   CLIP property was made a pointer to prevent clipping from
+;                           occurring when NOCLIP=0. - MRA
 ;-
 ;*****************************************************************************************
 ;+
@@ -235,11 +237,11 @@ POLYNUM=polynum
 ;---------------------------------------------------------------------
     ;Get the current color table vectors
     tvlct, r, g, b, /GET
-
+    
     ;Polyfill
     IF nz EQ 0 THEN BEGIN
         PolyFill, *xcoords, *ycoords, $
-                  CLIP         =  self.clip, $
+                  CLIP         = *self.clip, $
                   COLOR        =       fill_color, $
                   DATA         =  self.data, $
                   DEVICE       =  self.device, $
@@ -258,7 +260,7 @@ POLYNUM=polynum
                   Z            = *self.z
     ENDIF ELSE BEGIN
         PolyFill, *xcoords, *ycoords, *zcoords, $
-                  CLIP         =  self.clip, $
+                  CLIP         = *self.clip, $
                   COLOR        =       fill_color, $
                   DATA         =  self.data, $
                   DEVICE       =  self.device, $
@@ -359,7 +361,7 @@ POLYNUM=polynum
         IF nColors LE 1 THEN BEGIN
             IF nz EQ 0 THEN BEGIN
                 PlotS, *xcoords, *ycoords, $
-                       CLIP      =  self.clip, $
+                       CLIP      = *self.clip, $
                        COLOR     =       color, $
                        DATA      =  self.data, $
                        DEVICE    =  self.device, $
@@ -371,7 +373,7 @@ POLYNUM=polynum
                        Z         = *self.z
             ENDIF ELSE BEGIN
                 PlotS, *xcoords, *ycoords, *zcoords, $
-                       CLIP      =  self.clip, $
+                       CLIP      = *self.clip, $
                        COLOR     =       color, $
                        DATA      =  self.data, $
                        DEVICE    =  self.device, $
@@ -392,7 +394,7 @@ POLYNUM=polynum
             FOR i = 0, nVertices - 2 DO BEGIN
                 IF nz EQ 0 THEN BEGIN
                     PlotS, (*xcoords)[[i,i+1]], (*ycoords)[[i,i+1]], $
-                           CLIP      =  self.clip, $
+                           CLIP      = *self.clip, $
                            COLOR     =       color[i mod nColors], $
                            DATA      =  self.data, $
                            DEVICE    =  self.device, $
@@ -404,7 +406,7 @@ POLYNUM=polynum
                            Z         = *self.z
                 ENDIF ELSE BEGIN
                     PlotS, (*xcoords)[[i,i+1]], (*ycoords)[[i,i+1]], (*zcoords)[[i,i+1]], $
-                           CLIP      =  self.clip, $
+                           CLIP      = *self.clip, $
                            COLOR     =       color[i mod nColors], $
                            DATA      =  self.data, $
                            DEVICE    =  self.device, $
@@ -438,7 +440,7 @@ POLYNUM=polynum
         IF singleSym THEN BEGIN
             IF nz EQ 0 THEN BEGIN
                 PlotS, *xcoords, *ycoords, $
-                       CLIP      =  self.clip, $
+                       CLIP      = *self.clip, $
                        COLOR     =       symcolor, $
                        DATA      =  self.data, $
                        DEVICE    =  self.device, $
@@ -451,7 +453,7 @@ POLYNUM=polynum
                        Z         = *self.z
             ENDIF ELSE BEGIN
                 PlotS, *xcoords, *ycoords, *zcoords, $
-                       CLIP      =  self.clip, $
+                       CLIP      = *self.clip, $
                        COLOR     =       symcolor, $
                        DATA      =  self.data, $
                        DEVICE    =  self.device, $
@@ -471,7 +473,7 @@ POLYNUM=polynum
             FOR i = 0LL, nVertices - 1 DO BEGIN
                 IF nz EQ 0 THEN BEGIN
                     PlotS, (*xcoords)[i], (*ycoords)[i], $
-                           CLIP      =   self.clip, $
+                           CLIP      =  *self.clip, $
                            COLOR     =        symcolor[i mod nSymColor], $
                            DATA      =   self.data, $
                            DEVICE    =   self.device, $
@@ -484,7 +486,7 @@ POLYNUM=polynum
                            Z         =  *self.z
                 ENDIF ELSE BEGIN
                     PlotS, (*xcoords)[i], (*ycoords)[i], (*zcoords)[i], $
-                           CLIP      =   self.clip, $
+                           CLIP      =  *self.clip, $
                            COLOR     =        symcolor[i mod nSymColor], $
                            DATA      =   self.data, $
                            DEVICE    =   self.device, $
@@ -695,7 +697,7 @@ _REF_EXTRA=extra
     ENDIF
     
     ;Object Properties
-    IF Arg_Present(clip)            GT 0 THEN clip            =  self.clip
+    IF Arg_Present(clip)            GT 0 THEN clip            = *self.clip
     IF Arg_Present(color)           GT 0 THEN color           = *self.color
     IF Arg_Present(connectivity)    GT 0 THEN connectivity    = *self.connectivity
     IF Arg_Present(data)            GT 0 THEN data            =  self.data
@@ -931,7 +933,7 @@ _REF_EXTRA=extra
     ENDIF
     
     ;Object Properties
-    IF N_Elements(clip)            GT 0 THEN  self.clip            = clip
+    IF N_Elements(clip)            GT 0 THEN *self.clip            = clip
     IF N_Elements(color)           GT 0 THEN *self.color           = color
     IF N_Elements(fill_background) GT 0 THEN  self.fill_background = keyword_set(fill_background)
     IF N_Elements(fill_color)      GT 0 THEN *self.fill_color      = fill_color
@@ -1293,6 +1295,7 @@ _REF_EXTRA=extra
     self.xcoords         = Ptr_New(/ALLOCATE_HEAP)
     self.ycoords         = Ptr_New(/ALLOCATE_HEAP)
     self.zcoords         = Ptr_New(/ALLOCATE_HEAP)
+    self.clip            = Ptr_New(/ALLOCATE_HEAP)
     self.color           = Ptr_New(/ALLOCATE_HEAP)
     self.connectivity    = Ptr_New(/ALLOCATE_HEAP)
     self.fill_color      = Ptr_New(/ALLOCATE_HEAP)
@@ -1333,7 +1336,7 @@ _REF_EXTRA=extra
     *self.symthick        = symthick
      self.target          = target
      self.thick           = thick
-    if n_elements(clip)         gt 0 then  self.clip         = clip
+    if n_elements(clip)         gt 0 then *self.clip         = clip
     if n_elements(image_coord)  gt 0 then *self.image_coord  = image_coord
     if n_elements(image_interp) gt 0 then  self.image_interp = keyword_set(image_interp)
     if n_elements(orientation)  gt 0 then *self.orientation  = orientation
@@ -1370,7 +1373,7 @@ PRO MrPolygon__define, class
               ycoords:         ptr_new(), $
               zcoords:         ptr_new(), $
               nparams:         0B, $
-              clip:            fltarr(4), $
+              clip:            ptr_new(), $
               color:           ptr_new(), $     ;24-bit, index, or name
               connectivity:    ptr_new(), $
               data:            0B, $

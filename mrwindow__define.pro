@@ -231,6 +231,8 @@
 ;       2014/05/16  -   The Focus method selects only the fore-most graphics object. - MRA
 ;       2014/11/16  -   Added the ShowBuffer method. Incorporate the BUFFER keyword as
 ;                           a Z-buffer option with no windows. - MRA
+;       2018/05/29  -   ::WhichDataObjects and ::WhichAnnotateObjects print indices up
+;                           to 999. - MRA
 ;-
 ;*****************************************************************************************
 ;+
@@ -2125,11 +2127,11 @@ pro MrWindow::whichDataObjects, outText
         colrow = self -> ConvertLocation(layout[2], /PINDEX, /TO_COLROW)
 
         ;Print the type-name, location, and position
-        sIndex    = string(index[i], FORMAT='(i2)')
+        sIndex    = string(index[i], FORMAT='(i3)')
         sLocation = string(colrow, FORMAT='(%"[%3i,%3i]")')
         sName = dataObj[i] -> GetName()
 
-        outText[i+1] = string(FORMAT='(4x, a2, 7x, a' + typeLen + ', 5x, a0, 5x, a0)', $
+        outText[i+1] = string(FORMAT='(4x, a3, 7x, a' + typeLen + ', 5x, a0, 5x, a0)', $
                               sIndex, obj_class(dataObj[i]), sLocation, sName)
     endfor
     
@@ -2181,10 +2183,10 @@ pro MrWindow::whichAnnotateObjects, text
                                            FORMAT='(a9, 4x, a' + typeLen + ', 4x, a12)')
     
         ;Print the type-name, location, and position
-        sIndex = string(index[i], FORMAT='(i2)')
+        sIndex = string(index[i], FORMAT='(i3)')
         sName  = annObj[i] -> GetName()
 
-        outText[i+1] = string(FORMAT='(4x, a2, 7x, a' + typeLen + ', 5x, a0)', $
+        outText[i+1] = string(FORMAT='(4x, a3, 7x, a' + typeLen + ', 5x, a0)', $
                               sIndex, obj_class(annObj[i]), sName)
     
     endfor

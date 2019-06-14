@@ -141,6 +141,8 @@
 ;                           indices of other graphics. Fixed. - MRA
 ;       2014/10/04  -   Fixed typo when filling holes with fixed graphics present. - MRA
 ;       2014/11/07  -   Properly re-order fixed locations when filling holes. - MRA
+;       2018/03/31  -   ::_OverloadBracketsRightSide accepts two subscripts and returns
+;                           the graphic at the given [col,row]. - MRA
 ;-
 ;*****************************************************************************************
 ;+
@@ -257,7 +259,7 @@ end
 ;                           Index subscript of the graphics object to be returned, or the
 ;                               class names of the objects to return.
 ;-
-function MrPlotManager::_OverloadBracketsRightSide, isRange, subscript1
+function MrPlotManager::_OverloadBracketsRightSide, isRange, subscript1, subscript2
     compile_opt strictarr
     
     ;Error handling
@@ -269,7 +271,12 @@ function MrPlotManager::_OverloadBracketsRightSide, isRange, subscript1
     endif
 
     ;Search for objects by name. Return the first match.
-    if size(subscript1, /TNAME) eq 'STRING' then begin
+    if n_elements(subscript2) gt 0 then begin
+    	if MrIsA(subscript1, /SCALAR) eq 0 then message, 'Subscript1 must be a scalar'
+    	if MrIsA(subscript2, /SCALAR) eq 0 then message, 'Subscript2 must be a scalar'
+    	result = self -> FindByColRow([subscript1, subscript2])
+    	
+    endif else if size(subscript1, /TNAME) eq 'STRING' then begin
         if MrIsA(subscript1, /SCALAR) eq 0 then message, 'String subscripts must be scalars.'
         upSub1 = strupcase(subscript1)
 

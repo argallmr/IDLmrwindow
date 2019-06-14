@@ -165,7 +165,7 @@ NOERASE = noerase
 
 	;Do this in decomposed color
 	cgSetColorState, 1, CURRENT=current_state
-
+	
 	;Draw the plot
 	if self.overplot then begin
 		;Restore target's coordinate system. Make sure that the overplot
@@ -177,6 +177,7 @@ NOERASE = noerase
 	
 		;Overplot
 		if ~self.overplot then self -> doAxes
+		self -> PrepVectors
 		self -> doVectors
 		self -> SaveCoords
 	endif else begin
@@ -417,15 +418,15 @@ pro MrVector::GetData, velx, vely, posx, posy
     ;Retrieve the data
     case n_params() of
         2: begin
-            velx = *self.velx
-            vely = *self.vely
+            velx = *self.vx
+            vely = *self.vy
         endcase
         
         4: begin
-            velx = *self.velx
-            vely = *self.vely
-            posx = *self.posx
-            poxy = *self.posy
+            velx = *self.vx
+            vely = *self.vy
+            posx = *self.x
+            poxy = *self.y
         endcase
         
         else: message, 'Incorrect number of parameters.'
@@ -902,7 +903,6 @@ pro MrVector::SetData, vx, vy, x, y
 		*self.y  = y
 		*self.vx = vx
 		*self.vy = vy
-		
 		
 	;Must define positions
 	endif else begin

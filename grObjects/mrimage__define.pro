@@ -73,6 +73,7 @@
 ;       2015/07/06  -   Check RANGE keyword when /LOG is set to prevent infinite range. - MRA
 ;       2016/08/29  -   Set PAINT if X or Y are 2D. - MRA
 ;       2016/08/30  -   Set SCALE if the data range would result in a single color. - MRA
+;       2018/08/17  -   When scaling image in ::PrepImage, avoid MISSING_INDEX if possible. - MRA
 ;-
 ;*****************************************************************************************
 ;+
@@ -1340,7 +1341,10 @@ pro MrImage::PrepImage
 ;---------------------------------------------------------------------
 ; Prepare a Mask of Missing Values ///////////////////////////////////
 ;---------------------------------------------------------------------
+    tf_mask = 0B
     if n_elements(*self.missing_value) gt 0 || self.nan then begin
+        tf_mask = 1B
+        
         ;Convert to float
         ;   - All missing values are converted to NaNs temporarily.
         ;   - Allows setting /NAN keyword in, e.g. BytScl.
@@ -1385,12 +1389,23 @@ pro MrImage::PrepImage
 
 		;Get the number of colors in the color table
 		self.palette -> GetProperty, NCOLORS=ncolors
-
+		
+		;Avoid the missing index
+		bottom = 0B
+		top    = ncolors - 1
+		if tf_mask then begin
+			if self.missing_index eq 0B then begin
+				bottom = 1B
+				top    = ncolors - 2
+			endif else if self.missing_index eq ncolors - 1 then begin
+				top = ncolors - 2
+			endif
+		endif
+		
 		;Scale the image
-		;   - Set the NaN flag
 		img_out = bytscl(img_out, /NAN, $
-		                 MIN=range[0], MAX=range[1], $
-		                 TOP=ncolors-1 )
+		                 MIN = range[0], MAX=range[1], $
+		                 TOP = top ) + bottom
 	endif
 	
 	;Replace missing values with missing index

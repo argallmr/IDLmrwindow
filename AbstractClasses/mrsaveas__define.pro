@@ -2215,7 +2215,7 @@ _REF_EXTRA=extra
 	                     PS_TT_FONT           = ps_tt_font, $
 	                     WINID                = winID, $
 	                     WINDOW               = theWindow, $
-	                     _REF_EXTRA           = extra
+	                     _STRICT_EXTRA        = extra
 
 	;Default save file location
 	CD, CURRENT=current
